@@ -8,6 +8,7 @@ import type { ViewData } from "./view-data";
 import type * as Working from "./working-data";
 
 import { invoke } from "@tauri-apps/api/tauri";
+import { solve } from "./solve";
 
 let selectedDay: DateTime;
 let workingData: Working.Data = {
@@ -16,7 +17,19 @@ let workingData: Working.Data = {
     rooms: [],
     students: [],
     teachers: [],
-    timetable: [],
+    timetable: [
+        { start: DateTime.fromObject({ hour:  8, minute:  0 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour:  8, minute: 50 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour:  9, minute: 40 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour: 10, minute: 40 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour: 11, minute: 30 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour: 12, minute: 15 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour: 13, minute:  5 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour: 13, minute: 55 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour: 14, minute: 45 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour: 15, minute: 30 }), duration: Duration.fromObject({ minutes: 45 }) },
+        { start: DateTime.fromObject({ hour: 16, minute: 15 }), duration: Duration.fromObject({ minutes: 45 }) },
+    ],
 };
 
 let store: Writable<ViewData> = writable({
@@ -24,6 +37,7 @@ let store: Writable<ViewData> = writable({
     rooms: [],
     remainingExams: [],
     teachers: [],
+    students: [],
     timetable: [],
 });
 let currentProjectName: string;
@@ -42,13 +56,13 @@ function insertExam(examUuid: string, roomUuid: string, time: DateTime): void {
 
     room.calendar.book(time, exam.duration, exam);
     exam.examinees.forEach(v => v.calendar.book(time, exam.duration, exam));
-    exam.examiners.forEach(v => v.calendar.book(time, exam.duration, exam));
+    exam.examiners.forEach(v => v?.calendar.book(time, exam.duration, exam));
     workingData.finishedExams.push(<Working.Booked<Working.Exam>> {
         room,
         time: time,
         value: exam,
     });
-    // todo maybe add update store
+    updateViewData();
 }
 function removeExam(examUuid: string): void {
     let idx = workingData.finishedExams.findIndex(v => v.value.uuid === examUuid);
@@ -56,14 +70,68 @@ function removeExam(examUuid: string): void {
 
     exam.room.calendar.unbook(v => v.uuid === examUuid);
     exam.value.examinees.forEach(v => v.calendar.unbook(v => v.uuid === examUuid));
-    exam.value.examiners.forEach(v => v.calendar.unbook(v => v.uuid === examUuid));
+    exam.value.examiners.forEach(v => v?.calendar.unbook(v => v.uuid === examUuid));
 
     workingData.remainingExams.push(exam.value);
-    // todo maybe update store
+    updateViewData();
+}
+
+function* slots() {
+    for(const room of workingData.rooms) {
+        for(const slot of workingData.timetable) {
+            yield {
+                room,
+                slot,
+            }
+        }
+    }
 }
 
 function computeExams(): void {
 
+    let result = solve(
+        workingData.remainingExams,
+        slots,
+        (exam, { room, slot }) => {
+            insertExam(exam.uuid, room.uuid, slot.start);
+        },
+        // hard constraints
+        [
+            // no overlapping exams
+            (exam, { room, slot }) => !room.calendar.isBooked(slot.start, exam.duration),
+            // required tags must be used
+            (exam, { room, slot }) => !exam.tags.find(v => v.required && !room.tags.includes(v.name)),
+            // ! exam must have examiner
+            // (exam, { room, slot }) => !!exam.examiners[0],
+
+            // participants dont have other exams at the same time
+            (exam, { room, slot }) => {
+                if(exam.examiners.filter(v => !!v).find(v => v.calendar.isBooked(slot.start, exam.duration))) { return false }
+                if(exam.examinees.find(v => v.calendar.isBooked(slot.start, exam.duration))) { return false }
+                return true
+            },
+        ],
+        // soft constraints
+        [
+            // try to match tags of the exams
+            (exam, { room, slot }) => exam.tags.reduce((acc, v) => room.tags.includes(v.name) ? (v.required ? 20 : 10) + acc : acc, 0),
+            // longer exams rank heigher
+            (exam, { room, slot }) => exam.duration.as("minutes"),
+        ],
+    );
+}
+
+function newStudent() {
+    workingData.students.push({
+        calendar: new Calendar(),
+        name: {
+            first: "",
+            last: "",
+            title: undefined,
+            uuid: crypto.randomUUID(),
+        }
+    });
+    updateViewData();
 }
 
 // writers
@@ -131,13 +199,12 @@ function selectDay({ year, month, day }: { year: number, month: number, day: num
 
 // save / load
 async function save() {
-
     const examToSave = (v: Working.Exam) => (<Save.Exam>{
         uuid: v.uuid,
         id: v.id,
         duration: v.duration.toISO(),
-        examinees: v.examinees.map(v => v.name.uuid),
-        examiners: v.examiners.map(v => v.name.uuid),
+        examinees: v.examinees.map(v => v?.name?.uuid),
+        examiners: v.examiners.map(v => v?.name?.uuid),
         mainSubject: v.mainSubject,
         tags: v.tags,
     });
@@ -161,6 +228,7 @@ async function save() {
                 name: v.name,
                 subjects: v.subjects,
                 calendar: v.calendar.toJSON(v => v.uuid),
+                shorthand: v.shorthand,
             })),
             students: workingData.students.map(v => ({
                 name: v.name,
@@ -174,7 +242,9 @@ async function save() {
         })),
     };
 
-    await invoke("save", { content: JSON.stringify(saveData) });
+    if(!await invoke<boolean>("save", { content: JSON.stringify(saveData) })) {
+        alert("could not save file");
+    }
 }
 async function load(project?: string) {
     let loadedData: Save.FileFormat = JSON.parse(await invoke("load", {}));
@@ -255,27 +325,50 @@ async function load(project?: string) {
         students,
         timetable,
     };
+
+    updateViewData(); 
 }
 
 // view data
 function updateViewData(): void {
     let viewData: ViewData = {
         day: selectedDay,
-        rooms: workingData.rooms.map(v => ({
+        rooms: workingData.rooms.map((v) => ({
             uuid: v.uuid,
             number: v.number,
             tags: v.tags,
-            slots: workingData.timetable.map(t => ({
+            slots: workingData.timetable.map((t, idx) => ({
                 interval: Interval.after(t.start, t.duration),
-                exam: v.calendar.getEvents(t.start)[0]?.event || undefined, 
+                exam: v.calendar.getStarting(t.start)[0]?.event || undefined,
                 conflicts: [],
                 booked: v.calendar.isBooked(t.start, t.duration),
+                idx, 
             })),
         })),
 
         remainingExams: workingData.remainingExams,
         teachers: workingData.teachers,
-        timetable: workingData.timetable,
+        students: workingData.students,
+        timetable: [...(() => {
+            let item = workingData.timetable[0];
+            if(!item) { return [] }
+            return [{
+                start: item.start,
+                duration: item.duration,
+                padding: Duration.fromObject({}),
+            }]
+        })(),
+        ...workingData.timetable.slice(1).map((v, i) => {
+            let last = workingData.timetable[i];
+            let lastEnd = last.start.plus(last.duration);
+            let padding = lastEnd.diff(v.start);
+
+            return {
+                start: v.start,
+                duration: v.duration,
+                padding,
+            }
+        })],
     };
 
     store.set(viewData);
@@ -298,6 +391,8 @@ export {
     setRoomNumber,
 
     addExam,
+
+    newStudent,
 
     save,
     load,

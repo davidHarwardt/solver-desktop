@@ -7,6 +7,7 @@ import { setRoomNumber } from "../../scripts/controller";
 
     export let room: Room;
     export let timetable: Timetable;
+
 </script>
 
 <div class="room">
@@ -15,9 +16,9 @@ import { setRoomNumber } from "../../scripts/controller";
             <input type="text" placeholder="Raumnummer" class="room-number" on:change={v => setRoomNumber(room.uuid, v.currentTarget.value)} value={room.number}>
         </div>
     </div>
-    <div class="room-slots" style={`grid-template-rows: ${timetable.map(v => v.duration.as("minutes") / 60 * 15 + "rem").join(" ")}`}>
-
+    <div class="room-slots">
         {#each room.slots as slot}
+            <div class="time-slot-spacer" style:height={`calc(var(--room-height) * ${-timetable[slot.idx].padding.as("minutes") / 60})`}></div>
             <RoomSlot room={room} roomSlot={slot}/>
         {/each}
     </div>
@@ -40,9 +41,9 @@ import { setRoomNumber } from "../../scripts/controller";
     }
 
     .room-slots {
-        display: grid;
+        /* display: grid; */
         position: relative;
-        gap: var(--padding-normal);
+        /* gap: var(--padding-normal); */
         margin-top: calc(1.5 * var(--padding-normal));
     }
 

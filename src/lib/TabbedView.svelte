@@ -32,5 +32,10 @@
     .tabbed-view {
         display: grid;
         grid-template-columns: 1fr auto;
+        position: relative;
+    }
+
+    .tabs {
+        /* position: relative; */
     }
 </style>

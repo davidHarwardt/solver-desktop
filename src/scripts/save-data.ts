@@ -45,6 +45,7 @@ type FileFormat = {
     participants: {
         teachers: {
             name: Name,
+            shorthand: string,
             calendar: SerializedCalendar<string>,
             subjects: string[],
         }[],

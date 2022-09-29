@@ -32,7 +32,7 @@
     {:else}
         <SplitContainer bind:percentage={viewPercentage}>
             <EditorExamContiner exams={data.remainingExams} slot="left"/>
-            <TabsContainer slot="right"/>
+            <TabsContainer teachers={data.teachers} students={data.students} slot="right"/>
         </SplitContainer>
     {/if}
 </div>

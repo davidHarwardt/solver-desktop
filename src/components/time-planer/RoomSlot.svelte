@@ -38,7 +38,7 @@
     }
 </script>
 
-<div class="room-slot">
+<div class="room-slot" style:height={`calc(var(--room-height) * ${roomSlot.interval.length("minutes") / 60})`}>
     {#if roomSlot.exam}
         <div class="card-wrapper">
             <ExamCard onRemove={onRemove} exam={roomSlot.exam} displayDuration={true}/>

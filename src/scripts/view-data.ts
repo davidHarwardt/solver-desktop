@@ -1,5 +1,5 @@
-import type { DateTime, Interval } from "luxon";
-import type { Exam, Teacher, Timetable } from "./working-data";
+import type { DateTime, Interval, Duration } from "luxon";
+import type { Exam, Student, Teacher } from "./working-data";
 
 type ViewConflict = {
     description: string,
@@ -10,6 +10,7 @@ type RoomSlot = {
     exam?: Exam,
     conflicts: ViewConflict[],
     booked: boolean,
+    idx: number,
 }
 
 type Room = {
@@ -19,12 +20,19 @@ type Room = {
     slots: RoomSlot[],
 }
 
+type Timetable = {
+    start: DateTime,
+    duration: Duration,
+    padding: Duration,
+}[]
+
 type ViewData = {
     day: DateTime,
     rooms: Room[],
 
     remainingExams: Exam[],
     teachers: Teacher[],
+    students: Student[],
     timetable: Timetable,
 };
 

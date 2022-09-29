@@ -15,6 +15,7 @@ type Student = {
 
 type Teacher = {
     name: Name,
+    shorthand: string,
     calendar: Calendar<Exam>,
     subjects: string[],
 };

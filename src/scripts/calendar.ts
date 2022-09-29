@@ -44,6 +44,10 @@ class Calendar<T> {
         return this.events.filter(v => v.interval.contains(time));
     }
 
+    getStarting(time: DateTime): CalendarEvent<T>[] {
+        return this.events.filter(v => v.interval.start.equals(time))
+    }
+
     toJSON<U>(eventMapper: (v: T) => U): SerializedCalendar<U> {
         return this.events.map(v => ({
             interval: v.interval.toISO(),

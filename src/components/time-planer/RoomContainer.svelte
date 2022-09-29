@@ -16,9 +16,9 @@
         <div class="spacer"></div>
 
         {#each timetable as slot}
+            <div class="time-slot-spacer" style:height={`calc(var(--room-height) * ${-slot.padding.as("minutes") / 60})`}></div>
             <div class="time-slot" data-from={time(slot.start)} data-to={time(slot.start.plus(slot.duration))} style:height={`calc(var(--room-height) * ${slot.duration.as("minutes") / 60})`}></div>            
         {/each}
-        <div class="add-time-slot-btn">+</div>
     </div>
     <div class="rooms-container" style={`grid-template-columns: repeat(${rooms.length + 1}, auto)`}>
         {#each rooms as room}
@@ -40,7 +40,7 @@
         grid-template-columns: auto minmax(0, 1fr);
     }
 
-    .add-room-btn, .add-time-slot-btn {
+    .add-room-btn {
         background-color: var(--bg-sec);
         display: flex;
         align-items: center;
@@ -49,13 +49,9 @@
         cursor: pointer;
         transition: 0.125s ease-out;
     }
-
+    
     .add-room-btn:hover {
         filter: brightness(1.1);
-    }
-
-    .add-time-slot-btn {
-        font-size: 2rem;
     }
 
     .add-room-btn {
@@ -89,8 +85,12 @@
         background-color: var(--bg-sec);
 
         position: relative;
-        margin-bottom: var(--padding-normal);
+        /* margin-bottom: var(--padding-normal); */
         box-shadow: 5px 0px 15px 5px #0000001a;
+    }
+
+    .time-slot-spacer {
+        width: 3rem;
     }
 
     .time-slot::before {

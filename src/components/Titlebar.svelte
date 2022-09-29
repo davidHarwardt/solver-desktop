@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { load, save } from "../scripts/controller";
+    import { computeExams, load, save } from "../scripts/controller";
 
 
     enum SelectedView {
@@ -18,12 +18,17 @@
         load();
     }
 
+    function computeFn() {
+        computeExams();
+    }
+
 </script>
 
 <div class="title-bar">
     <div class="title-left">
-        <div class="save-btn btn" on:click={saveFn}>save</div>
-        <div class="load-btn btn" on:click={loadFn}>load</div>
+        <div class="save-btn btn" on:click={saveFn}>Speichern</div>
+        <div class="load-btn btn" on:click={loadFn}>Laden</div>
+        <div class="compute-btn btn" on:click={computeFn}>Berechnen</div>
     </div>
     <div class="title-center">
         <div class="select-tab" on:click={_ => onSelect("time-planer")} class:active={selectedView === "time-planer"}>Räume</div>
