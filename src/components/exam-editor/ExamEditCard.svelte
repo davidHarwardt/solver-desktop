@@ -46,6 +46,10 @@
             {/each}
         </div>
     </div>
+    <div>
+        <div>Fach:</div>
+        <input type="text" bind:value={exam.mainSubject} placeholder="Fach">
+    </div>
 </div>
 
 <style>
@@ -64,6 +68,7 @@
         grid-template-columns: repeat(3, 1fr);
         gap: var(--padding-small);
     }
+
 
     .badge {
         background-color: var(--color-blue);

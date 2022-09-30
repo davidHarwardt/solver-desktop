@@ -6,13 +6,13 @@
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 
 #[tauri::command]
-fn save(content: &str) -> bool {
-    std::fs::write("test_save.json", content).is_ok()
+fn save(path: &str, content: &str) -> bool {
+    std::fs::write(path, content).is_ok()
 }
 
 #[tauri::command]
-fn load() -> String {
-    std::fs::read_to_string("test_save.json").unwrap()
+fn load(path: &str) -> String {
+    std::fs::read_to_string(path).unwrap()
 }
 
 fn main() {

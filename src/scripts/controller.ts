@@ -10,6 +10,7 @@ import type * as Working from "./working-data";
 import { invoke } from "@tauri-apps/api/tauri";
 import { solve } from "./solve";
 
+let currentPath: string | undefined = undefined;
 let selectedDay: DateTime;
 let workingData: Working.Data = {
     finishedExams: [],
@@ -198,7 +199,9 @@ function selectDay({ year, month, day }: { year: number, month: number, day: num
 }
 
 // save / load
-async function save() {
+async function save(path?: string) {
+    if(!path && !currentPath) { alert("kein Pfad ausgewählt"); return }
+    if(path) { currentPath = path }
     const examToSave = (v: Working.Exam) => (<Save.Exam>{
         uuid: v.uuid,
         id: v.id,
@@ -242,12 +245,13 @@ async function save() {
         })),
     };
 
-    if(!await invoke<boolean>("save", { content: JSON.stringify(saveData) })) {
+    if(!await invoke<boolean>("save", { content: JSON.stringify(saveData), path: currentPath })) {
         alert("could not save file");
     }
 }
-async function load(project?: string) {
-    let loadedData: Save.FileFormat = JSON.parse(await invoke("load", {}));
+async function load(path: string) {
+    currentPath = path;
+    let loadedData: Save.FileFormat = JSON.parse(await invoke("load", { path: currentPath }));
 
     let rooms = loadedData.rooms.map(v => (<Working.Room>{
         uuid: v.uuid,
@@ -393,6 +397,7 @@ export {
     addExam,
 
     newStudent,
+    currentPath,
 
     save,
     load,

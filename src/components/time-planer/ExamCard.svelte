@@ -22,6 +22,7 @@
     <div class="exam-id">{exam.id || "[id]"}</div>
     <div class="exam-uuid">{exam.uuid}</div>
     <div class="exam-duration">Dauer: {exam.duration.as("minutes")} Minuten</div>
+    <div class="exam-subject">Fach: {exam.mainSubject}</div>
     <div class="exam-examiners">
         todo
     </div>

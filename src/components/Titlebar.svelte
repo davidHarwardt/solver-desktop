@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { computeExams, load, save } from "../scripts/controller";
-
+    import { computeExams, load, save as controllerSave, currentPath } from "../scripts/controller";
+    import { save, open } from "@tauri-apps/api/dialog";
 
     enum SelectedView {
         TimePlaner,
@@ -11,11 +11,36 @@
     export let selectedView;
 
     function saveFn() {
-        save();
+        // save();
+        if(currentPath) {
+            controllerSave()
+        } else {
+            save({
+                filters: [{
+                    name: "Solver-Projekt",
+                    extensions: ["json"],
+                }]
+            }).then(v => {
+                if(v !== null) {
+                    controllerSave(v)
+                }
+            });
+        }
     }
 
     function loadFn() {
-        load();
+        // load();
+        open({
+            multiple: false,
+            filters: [{
+                name: "Solver-Projekt",
+                extensions: ["json"],
+            }],
+        }).then(v => {
+            if(v !== null) {
+                load(v as string);
+            }
+        });
     }
 
     function computeFn() {
@@ -26,6 +51,7 @@
 
 <div class="title-bar">
     <div class="title-left">
+        <div class="new-btn btn" on:click={saveFn}>Neu</div>
         <div class="save-btn btn" on:click={saveFn}>Speichern</div>
         <div class="load-btn btn" on:click={loadFn}>Laden</div>
         <div class="compute-btn btn" on:click={computeFn}>Berechnen</div>
